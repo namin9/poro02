@@ -33,6 +33,8 @@ export default function AutoCompleteInput({
       timer.current = null
     }
 
+    setPending(null)
+
     const nextQ = q.trim()
     if (nextQ.length < 2) {
       setItems([])
