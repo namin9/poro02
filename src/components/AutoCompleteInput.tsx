@@ -15,20 +15,41 @@ export default function AutoCompleteInput({
   const timer = useRef<number | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
+    if (timer.current) {
+      window.clearTimeout(timer.current)
+      timer.current = null
+    }
+
     if (q.trim().length < 2) {
       setItems([])
       return
     }
-    if (timer.current) window.clearTimeout(timer.current)
+
     timer.current = window.setTimeout(async () => {
       try {
         const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`)
         const data = (await res.json()) as { items: SuggestItem[] }
-        setItems(data.items ?? [])
+        if (!cancelled) {
+          setItems(data.items ?? [])
+        }
       } catch {
-        setItems([])
+        if (!cancelled) {
+          setItems([])
+        }
+      } finally {
+        timer.current = null
       }
     }, 200)
+
+    return () => {
+      cancelled = true
+      if (timer.current) {
+        window.clearTimeout(timer.current)
+        timer.current = null
+      }
+    }
   }, [q])
 
   return (
