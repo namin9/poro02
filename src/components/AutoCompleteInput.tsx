@@ -33,29 +33,38 @@ export default function AutoCompleteInput({
       timer.current = null
     }
 
-    setPending(null)
+useEffect(() => {
+  let cancelled = false
 
-    const nextQ = q.trim()
-    if (nextQ.length < 2) {
-      setItems([])
-      setError(null)
-      return
-    }
+  const nextQ = q.trim()
+  if (nextQ.length < 2) {
+    setItems([])
+    setError?.(null)            // setError가 있다면 에러 초기화
+    return
+  }
 
-    setError(null)
+  setError?.(null)
 
-    timer.current = window.setTimeout(async () => {
-      abortRef.current?.abort()
-      const controller = new AbortController()
-      abortRef.current = controller
-      try {
-        const res = await fetch(`/api/suggest?q=${encodeURIComponent(nextQ)}`, {
-          signal: controller.signal
-        })
-        const data = (await res.json()) as { items?: AddressCandidate[]; error?: string }
-        if (!cancelled) {
-          const list = data.items ?? []
-          setItems(list)
+  timer.current = window.setTimeout(async () => {
+    // 직전 요청 취소
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      const res = await fetch(`/api/suggest?q=${encodeURIComponent(nextQ)}`, {
+        signal: controller.signal,
+      })
+      const data = (await res.json()) as {
+        items?: AddressCandidate[]; // or 프로젝트에서 쓰는 타입으로 통일
+        error?: string
+      }
+
+      if (!cancelled) {
+        const list = data.items ?? []
+        setItems(list)
+
+        if (setError) {
           if (list.length > 0) {
             setError(null)
           } else {
@@ -74,29 +83,30 @@ export default function AutoCompleteInput({
             }
           }
         }
-      } catch (error) {
-        if (!cancelled && (error as DOMException)?.name !== 'AbortError') {
-          setItems([])
-          setError('주소 목록을 불러오지 못했습니다.')
-        }
-      } finally {
-        if (abortRef.current === controller) {
-          abortRef.current = null
-        }
-        timer.current = null
       }
-    }, 200)
-
-    return () => {
-      cancelled = true
-      abortRef.current?.abort()
-      abortRef.current = null
-      if (timer.current) {
-        window.clearTimeout(timer.current)
-        timer.current = null
+    } catch (err) {
+      if (!cancelled && (err as DOMException)?.name !== 'AbortError') {
+        setItems([])
+        setError?.('주소 목록을 불러오지 못했습니다.')
       }
+    } finally {
+      if (abortRef.current === controller) {
+        abortRef.current = null
+      }
+      timer.current = null
     }
-  }, [q])
+  }, 200)
+
+  return () => {
+    cancelled = true
+    abortRef.current?.abort()
+    abortRef.current = null
+    if (timer.current) {
+      window.clearTimeout(timer.current)
+      timer.current = null
+    }
+  }
+}, [q])
 
   const selectItem = async (candidate: AddressCandidate) => {
     setPending(candidate.roadAddress)
