@@ -1,4 +1,5 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createRoot } from 'react-dom/client'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App'
 import Enter from './pages/Enter'
 import Home from './pages/Home'
@@ -9,9 +10,7 @@ import Bullet from './pages/Bullet'
 import MapSummary from './pages/MapSummary'
 import Settings from './pages/Settings'
 
-createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)
-
-export default createBrowserRouter([
+const router = createBrowserRouter([
   { path: '/enter', element: <Enter /> },
   {
     path: '/',
@@ -27,4 +26,6 @@ export default createBrowserRouter([
     ]
   }
 ])
+
+createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)
 
