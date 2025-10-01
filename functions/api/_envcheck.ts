@@ -1,7 +1,7 @@
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   const mask = (v?: string) => (v ? v.slice(0, 3) + '***' : 'missing')
   const payload = {
-    ENTRY_CODE: mask(env.ENTRY_CODE),
+    ENTRY_CODE: mask(env.ENTRY_CODE || env.VITE_ENTRY_CODE),
     KAKAO_REST_API_KEY: mask(env.KAKAO_REST_API_KEY),
     NCP_API_KEY_ID: mask(env.NCP_API_KEY_ID),
     NCP_API_KEY: mask(env.NCP_API_KEY),
@@ -14,6 +14,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
 
 export interface Env {
   ENTRY_CODE?: string
+  VITE_ENTRY_CODE?: string
   KAKAO_REST_API_KEY?: string
   NCP_API_KEY_ID?: string
   NCP_API_KEY?: string
