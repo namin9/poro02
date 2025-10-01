@@ -9,7 +9,7 @@ export default function App() {
   useEffect(() => {
     // 간단한 경량 보호
     if (!getEntryOK() && loc.pathname !== '/enter') nav('/enter')
-  }, [loc.pathname])
+  }, [loc.pathname, nav])
 
   return (
     <div className="mx-auto max-w-screen-sm min-h-dvh">

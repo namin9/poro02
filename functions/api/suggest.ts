@@ -3,38 +3,49 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const url = new URL(request.url)
     const q = (url.searchParams.get('q') || '').trim()
     if (q.length < 2) {
-      return new Response(JSON.stringify({ items: [], message: 'q must be >= 2 chars' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json; charset=utf-8' }
-      })
+      return jsonOK({ items: [], error: 'short_query' }, env)
     }
 
-    // Kakao Local 키워드 검색
-    const kakaoUrl = new URL('https://dapi.kakao.com/v2/local/search/keyword.json')
-    kakaoUrl.searchParams.set('query', q)
-    kakaoUrl.searchParams.set('size', '10')
+    if (!env.JUSO_API_KEY) {
+      return jsonOK({ items: [], error: 'not_configured' }, env)
+    }
 
-    const res = await fetch(kakaoUrl, {
-      headers: { Authorization: `KakaoAK ${env.KAKAO_REST_API_KEY}` }
-    })
+    const jusoUrl = new URL('https://business.juso.go.kr/addrlink/openApi/searchApi.do')
+    jusoUrl.searchParams.set('confmKey', env.JUSO_API_KEY)
+    jusoUrl.searchParams.set('keyword', q)
+    jusoUrl.searchParams.set('currentPage', '1')
+    jusoUrl.searchParams.set('countPerPage', '10')
+    jusoUrl.searchParams.set('resultType', 'json')
+
+    const res = await fetch(jusoUrl)
     if (!res.ok) {
-      return new Response(JSON.stringify({ items: [], error: 'kakao_fail' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json; charset=utf-8' }
-      })
+      return jsonOK({ items: [], error: 'juso_fail' }, env)
     }
+
     const data = await res.json()
-    const items =
-      (data?.documents || []).map((d: any) => ({
-        title: d.place_name || d.address_name,
-        subtitle: [d.road_address_name, d.category_name].filter(Boolean).join(' • '),
-        x: parseFloat(d.x),
-        y: parseFloat(d.y)
-      })) ?? []
+    const list: any[] = data?.results?.juso ?? []
+    const items = list
+      .map((item) => {
+        const road = (item?.roadAddr || item?.roadAddrPart1 || '').trim()
+        const jibun = (item?.jibunAddr || '').trim()
+        const zip = (item?.zipNo || '').trim()
+        const displayTitle = road || jibun
+        if (!displayTitle) {
+          return null
+        }
+        return {
+          title: displayTitle,
+          subtitle: [jibun, zip].filter(Boolean).join(' • '),
+          roadAddress: road || displayTitle,
+          jibunAddress: jibun || undefined,
+          zipCode: zip || undefined
+        }
+      })
+      .filter(Boolean)
 
     return jsonOK({ items }, env)
   } catch (e) {
-    return jsonOK({ items: [], error: 'unexpected' }, undefined)
+    return jsonOK({ items: [], error: 'unexpected' }, env)
   }
 }
 
@@ -54,6 +65,6 @@ function corsHeaders(env?: Env) {
 }
 
 export interface Env {
-  KAKAO_REST_API_KEY: string
+  JUSO_API_KEY?: string
   ALLOWED_ORIGINS?: string
 }
