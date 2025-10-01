@@ -23,6 +23,7 @@ export default function AutoCompleteInput({
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const timer = useRef<number | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -42,8 +43,13 @@ export default function AutoCompleteInput({
     setError(null)
 
     timer.current = window.setTimeout(async () => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
       try {
-        const res = await fetch(`/api/suggest?q=${encodeURIComponent(nextQ)}`)
+        const res = await fetch(`/api/suggest?q=${encodeURIComponent(nextQ)}`, {
+          signal: controller.signal
+        })
         const data = (await res.json()) as { items?: AddressCandidate[]; error?: string }
         if (!cancelled) {
           const list = data.items ?? []
@@ -66,18 +72,23 @@ export default function AutoCompleteInput({
             }
           }
         }
-      } catch {
-        if (!cancelled) {
+      } catch (error) {
+        if (!cancelled && (error as DOMException)?.name !== 'AbortError') {
           setItems([])
           setError('주소 목록을 불러오지 못했습니다.')
         }
       } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null
+        }
         timer.current = null
       }
     }, 200)
 
     return () => {
       cancelled = true
+      abortRef.current?.abort()
+      abortRef.current = null
       if (timer.current) {
         window.clearTimeout(timer.current)
         timer.current = null
