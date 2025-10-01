@@ -22,10 +22,17 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   nav.searchParams.append('markers', `type:t|size:mid|pos:${sy} ${sx}|label:S`)
   nav.searchParams.append('markers', `type:t|size:mid|pos:${ey} ${ex}|label:E`)
 
+  const apiId = env.NAVER_CLIENT_ID || env.NCP_API_KEY_ID
+  const apiKey = env.NAVER_CLIENT_SECRET || env.NCP_API_KEY
+
+  if (!apiId || !apiKey) {
+    return new Response('naver api key missing', { status: 500 })
+  }
+
   const res = await fetch(nav.toString(), {
     headers: {
-      'X-NCP-APIGW-API-KEY-ID': env.NCP_API_KEY_ID,
-      'X-NCP-APIGW-API-KEY': env.NCP_API_KEY
+      'X-NCP-APIGW-API-KEY-ID': apiId,
+      'X-NCP-APIGW-API-KEY': apiKey
     }
   })
   return new Response(res.body, {
@@ -39,7 +46,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 }
 
 export interface Env {
-  NCP_API_KEY_ID: string
-  NCP_API_KEY: string
+  NAVER_CLIENT_ID?: string
+  NAVER_CLIENT_SECRET?: string
+  NCP_API_KEY_ID?: string
+  NCP_API_KEY?: string
   ALLOWED_ORIGINS?: string
 }
