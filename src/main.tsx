@@ -9,6 +9,8 @@ import Bullet from './pages/Bullet'
 import MapSummary from './pages/MapSummary'
 import Settings from './pages/Settings'
 
+createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)
+
 export default createBrowserRouter([
   { path: '/enter', element: <Enter /> },
   {
@@ -25,3 +27,4 @@ export default createBrowserRouter([
     ]
   }
 ])
+
